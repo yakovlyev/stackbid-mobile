@@ -1,15 +1,21 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "StackBid",
+    "slug": "stackbid-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.stackbid.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "StackBid uses your camera to identify construction materials and estimate their price.",
+        "NSPhotoLibraryUsageDescription": "StackBid needs access to your photos so you can upload a picture of a material to identify and price it."
+      }
     },
     "android": {
+      "package": "app.stackbid.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
