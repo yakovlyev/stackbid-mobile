@@ -8,10 +8,13 @@ import type { PhotoResult } from '../lib/types';
 export default function PhotoScreen() {
   const [uri, setUri] = useState<string | null>(null);
   const [base64, setBase64] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string>('image/jpeg');
   const [zip, setZip] = useState('');
   const [qty, setQty] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PhotoResult | null>(null);
+
+  const SUPPORTED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
   const pickFrom = async (source: 'camera' | 'library') => {
     const perm =
@@ -22,12 +25,30 @@ export default function PhotoScreen() {
       alert('Permission needed to access ' + (source === 'camera' ? 'the camera' : 'your photos') + '.');
       return;
     }
-    const opts: ImagePicker.ImagePickerOptions = { quality: 0.7, base64: true, allowsEditing: true };
+    // Форсируем JPEG на выходе (даже если исходник HEIC/PNG с телефона) —
+    // раньше mime-тип отправлялся в Claude как хардкод 'image/jpeg' независимо
+    // от реального формата, из-за чего HEIC-фото с iPhone уходили как "битый"
+    // JPEG и модель не могла ничего распознать на фото.
+    const opts: ImagePicker.ImagePickerOptions = {
+      quality: 0.7,
+      base64: true,
+      allowsEditing: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    };
     const res =
       source === 'camera' ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
     if (!res.canceled && res.assets?.[0]) {
-      setUri(res.assets[0].uri);
-      setBase64(res.assets[0].base64 || null);
+      const asset = res.assets[0];
+      let detectedType = asset.mimeType || 'image/jpeg';
+      if (!SUPPORTED.includes(detectedType)) {
+        // HEIC и прочие форматы, которые Claude не умеет читать напрямую —
+        // ImagePicker обычно уже перекодирует в JPEG сам, но на всякий случай
+        // предупреждаем, а не отправляем заведомо нечитаемые байты
+        detectedType = 'image/jpeg';
+      }
+      setUri(asset.uri);
+      setBase64(asset.base64 || null);
+      setMimeType(detectedType);
       setResult(null);
     }
   };
@@ -39,7 +60,7 @@ export default function PhotoScreen() {
     }
     setLoading(true);
     try {
-      const r = await analyzePhotoBase64(base64, zip.trim() || '77001', qty.trim());
+      const r = await analyzePhotoBase64(base64, zip.trim() || '77001', qty.trim(), mimeType);
       setResult(r);
     } catch (e) {
       alert("Couldn't analyze this photo — please try again.");

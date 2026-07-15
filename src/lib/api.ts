@@ -86,7 +86,8 @@ export async function generateEstimate(
 export async function analyzePhotoBase64(
   base64: string,
   zip: string,
-  qty?: string
+  qty?: string,
+  mediaType: string = 'image/jpeg'
 ): Promise<PhotoResult> {
   const promptText = `You are a US construction materials pricing expert. Analyze this photo carefully.
 ZIP: ${zip}. Quantity needed: ${qty || 'not specified'}.
@@ -117,7 +118,7 @@ If it IS a construction material, return ONLY valid JSON:
       {
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
           { type: 'text', text: promptText },
         ],
       },
