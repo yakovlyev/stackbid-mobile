@@ -15,7 +15,7 @@ import type { ProjectType } from '../lib/types';
 import { generateEstimate, checkAccess, saveEstimate } from '../lib/api';
 import { getStoredEmail, getStoredUser } from '../lib/storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../App';
+import type { HomeStackParamList } from '../../App';
 
 const PROJECT_TYPES: ProjectType[] = [
   'New home build',
@@ -29,7 +29,7 @@ const PROJECT_TYPES: ProjectType[] = [
 
 const SUPPLIERS = ['Any / best match', 'Home Depot', "Lowe's", '84 Lumber', 'Builders FirstSource'];
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const [desc, setDesc] = useState('');

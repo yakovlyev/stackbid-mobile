@@ -2,15 +2,18 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Text } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import PhotoScreen from './src/screens/PhotoScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
+import AccountScreen from './src/screens/AccountScreen';
 import type { Estimate, ProjectType } from './src/lib/types';
 import { colors } from './src/lib/theme';
 
-export type RootStackParamList = {
+export type HomeStackParamList = {
   Home: undefined;
   Photo: undefined;
   Results: {
@@ -22,23 +25,53 @@ export type RootStackParamList = {
   };
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+const Tab = createBottomTabNavigator();
+
+function HomeStackNavigator() {
+  return (
+    <HomeStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.ink },
+        headerTintColor: colors.white,
+        headerTitleStyle: { fontWeight: '700' },
+      }}
+    >
+      <HomeStack.Screen name="Home" component={HomeScreen} options={{ title: 'StackBid' }} />
+      <HomeStack.Screen name="Photo" component={PhotoScreen} options={{ title: 'Identify material' }} />
+      <HomeStack.Screen name="Results" component={ResultsScreen} options={{ title: 'Your estimate' }} />
+    </HomeStack.Navigator>
+  );
+}
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator
+        <Tab.Navigator
           screenOptions={{
-            headerStyle: { backgroundColor: colors.ink },
-            headerTintColor: colors.white,
-            headerTitleStyle: { fontWeight: '700' },
+            headerShown: false,
+            tabBarActiveTintColor: colors.ink,
+            tabBarInactiveTintColor: colors.muted,
           }}
         >
-          <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'StackBid' }} />
-          <Stack.Screen name="Photo" component={PhotoScreen} options={{ title: 'Identify material' }} />
-          <Stack.Screen name="Results" component={ResultsScreen} options={{ title: 'Your estimate' }} />
-        </Stack.Navigator>
+          <Tab.Screen
+            name="Estimate"
+            component={HomeStackNavigator}
+            options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>🏠</Text> }}
+          />
+          <Tab.Screen
+            name="Account"
+            component={AccountScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: colors.ink },
+              headerTintColor: colors.white,
+              title: 'My account',
+              tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>👤</Text>,
+            }}
+          />
+        </Tab.Navigator>
       </NavigationContainer>
       <StatusBar style="light" />
     </SafeAreaProvider>

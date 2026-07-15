@@ -163,3 +163,24 @@ export async function createCheckoutSession(email: string): Promise<{ url?: stri
     return { error: e?.data?.error || e.message };
   }
 }
+
+export interface EstimateHistoryItem {
+  id: string;
+  title: string;
+  project_type: string;
+  zip: string;
+  total_retail: number | null;
+  total_wholesale: number | null;
+  total_local: number | null;
+  created_at: string;
+}
+
+export async function getEstimateHistory(
+  email: string
+): Promise<{ is_pro: boolean; estimates: EstimateHistoryItem[] }> {
+  try {
+    return await postJson('/api/get-estimates', { email });
+  } catch (e) {
+    return { is_pro: false, estimates: [] };
+  }
+}

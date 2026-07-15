@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../App';
+import type { HomeStackParamList } from '../../App';
 import EstimateResults from '../components/EstimateResults';
 import GateModal from '../components/GateModal';
 import PaywallModal from '../components/PaywallModal';
@@ -9,7 +9,7 @@ import { saveUser, getStoredEmail } from '../lib/storage';
 import { saveEstimate } from '../lib/api';
 import { colors } from '../lib/theme';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Results'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'Results'>;
 
 export default function ResultsScreen({ route, navigation }: Props) {
   const { estimate, zip, projectType, requireGate, showPaywall } = route.params;
