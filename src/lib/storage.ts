@@ -13,18 +13,19 @@ export async function getStoredEmail(): Promise<string | null> {
 }
 
 export async function saveUser(email: string, name: string, role: string) {
-  await AsyncStorage.setMany({
-    [KEYS.email]: email,
-    [KEYS.name]: name,
-    [KEYS.role]: role,
-  });
+  await AsyncStorage.multiSet([
+    [KEYS.email, email],
+    [KEYS.name, name],
+    [KEYS.role, role],
+  ]);
 }
 
 export async function getStoredUser() {
-  const values = await AsyncStorage.getMany([KEYS.email, KEYS.name, KEYS.role]);
+  const pairs = await AsyncStorage.multiGet([KEYS.email, KEYS.name, KEYS.role]);
+  const map = Object.fromEntries(pairs);
   return {
-    email: values[KEYS.email] || '',
-    name: values[KEYS.name] || '',
-    role: values[KEYS.role] || 'homeowner',
+    email: map[KEYS.email] || '',
+    name: map[KEYS.name] || '',
+    role: map[KEYS.role] || 'homeowner',
   };
 }
