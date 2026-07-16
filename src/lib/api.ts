@@ -156,6 +156,26 @@ export async function saveEstimate(user: UserData, estimate: Estimate, zip: stri
   }
 }
 
+export async function logConsent(email: string, consentText: string): Promise<void> {
+  try {
+    await postJson('/api/log-consent', {
+      email,
+      consent_text: consentText,
+      consent_version: 'mobile_paywall_v1_2026-07-16'
+    });
+  } catch (e) {
+    // best effort — не блокирует чекаут
+  }
+}
+
+export async function createPortalSession(email: string): Promise<{ url?: string; error?: string }> {
+  try {
+    return await postJson<{ url: string }>('/api/create-portal-session', { email });
+  } catch (e: any) {
+    return { error: e?.data?.error || e.message };
+  }
+}
+
 export async function createCheckoutSession(email: string): Promise<{ url?: string; error?: string }> {
   try {
     return await postJson<{ url: string }>('/api/create-checkout-session', { email });

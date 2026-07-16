@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { colors, spacing } from '../lib/theme';
 import { getStoredUser } from '../lib/storage';
-import { getEstimateHistory, type EstimateHistoryItem } from '../lib/api';
+import { getEstimateHistory, createPortalSession, type EstimateHistoryItem } from '../lib/api';
 
 export default function AccountScreen() {
   const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [isPro, setIsPro] = useState(false);
@@ -22,6 +24,17 @@ export default function AccountScreen() {
       setEstimates(data.estimates || []);
     }
     setLoading(false);
+  };
+
+  const manageSubscription = async () => {
+    setPortalLoading(true);
+    const result = await createPortalSession(email);
+    setPortalLoading(false);
+    if (result.url) {
+      await WebBrowser.openBrowserAsync(result.url);
+      return;
+    }
+    Alert.alert("Couldn't open billing", result.error || 'Please try again in a moment.');
   };
 
   useEffect(() => {
@@ -54,6 +67,15 @@ export default function AccountScreen() {
             {isPro ? '⭐ StackBid Pro' : 'Free plan'}
           </Text>
         </View>
+        {isPro && (
+          <TouchableOpacity style={styles.manageBtn} onPress={manageSubscription} disabled={portalLoading}>
+            {portalLoading ? (
+              <ActivityIndicator color={colors.ink} size="small" />
+            ) : (
+              <Text style={styles.manageBtnText}>Manage / Cancel Subscription</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>Your estimates</Text>
@@ -102,6 +124,16 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, fontWeight: '700' },
   badgeTextPro: { color: colors.goldDark },
   badgeTextFree: { color: colors.muted },
+  manageBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  manageBtnText: { fontSize: 12.5, fontWeight: '600', color: colors.ink },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },
   card: { backgroundColor: colors.offwhite, borderRadius: 10, padding: spacing.md, marginBottom: spacing.sm },
   cardTitle: { fontSize: 13, fontWeight: '700', color: colors.ink },
