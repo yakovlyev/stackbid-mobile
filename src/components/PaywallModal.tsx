@@ -14,7 +14,7 @@ const PERKS = [
   'Unlimited material estimates',
   'Save your project history',
   'Price drop alerts',
-  'Priority contractor matching',
+  'Access to local contractor listings',
   'Detailed supplier PDF reports',
 ];
 
