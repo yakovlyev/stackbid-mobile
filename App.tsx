@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,6 +12,7 @@ import ResultsScreen from './src/screens/ResultsScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import type { Estimate, ProjectType } from './src/lib/types';
 import { colors } from './src/lib/theme';
+import { configurePurchases } from './src/lib/purchases';
 
 export type HomeStackParamList = {
   Home: undefined;
@@ -45,6 +46,10 @@ function HomeStackNavigator() {
 }
 
 export default function App() {
+  useEffect(() => {
+    configurePurchases();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>
