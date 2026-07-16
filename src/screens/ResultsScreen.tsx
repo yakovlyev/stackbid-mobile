@@ -36,7 +36,12 @@ export default function ResultsScreen({ route, navigation }: Props) {
     <View style={styles.wrap}>
       {unlocked && <EstimateResults estimate={estimate} zip={zip} />}
       <GateModal visible={gateOpen} estimate={estimate} onUnlock={onUnlock} />
-      <PaywallModal visible={paywallOpen} email={email} onClose={() => navigation.goBack()} />
+      <PaywallModal
+        visible={paywallOpen}
+        email={email}
+        onClose={() => navigation.goBack()}
+        onUnlocked={() => { setPaywallOpen(false); setUnlocked(true); }}
+      />
     </View>
   );
 }
