@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { PurchasesPackage } from 'react-native-purchases';
 import { colors, spacing } from '../lib/theme';
-import { createCheckoutSession, logConsent } from '../lib/api';
+import { getProOffering, purchasePro, restorePurchases, identifyPurchaser } from '../lib/purchases';
+import { logConsent } from '../lib/api';
 
 interface Props {
   visible: boolean;
   email: string;
   onClose: () => void;
+  onUnlocked: () => void;
 }
 
 const PERKS = [
@@ -18,30 +20,59 @@ const PERKS = [
   'Detailed supplier PDF reports',
 ];
 
-const CONSENT_TEXT =
-  'I understand this is a monthly subscription for $9.99 that renews automatically until canceled, and that I can cancel anytime in my account.';
+// Apple/Google require the price + renewal terms to be disclosed before purchase,
+// but the actual charge confirmation UI belongs to their native purchase sheet —
+// we don't show our own "Continue and unlock" payment button, StoreKit/Play Billing does.
+const DISCLOSURE_TEXT =
+  'Monthly subscription, renews automatically until canceled. Manage or cancel anytime in your device account settings.';
 
-export default function PaywallModal({ visible, email, onClose }: Props) {
+export default function PaywallModal({ visible, email, onClose, onUnlocked }: Props) {
   const [loading, setLoading] = useState(false);
-  const [consented, setConsented] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [pkg, setPkg] = useState<PurchasesPackage | null>(null);
+  const [priceString, setPriceString] = useState('$9.99');
 
-  const subscribe = async () => {
-    if (!consented) {
-      Alert.alert('Please confirm', 'Check the box confirming you understand this is a recurring subscription.');
+  useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      if (email) await identifyPurchaser(email);
+      const offering = await getProOffering();
+      const monthly = offering?.availablePackages.find((p) => p.packageType === 'MONTHLY') || offering?.availablePackages[0] || null;
+      setPkg(monthly);
+      if (monthly?.product?.priceString) setPriceString(monthly.product.priceString);
+    })();
+  }, [visible, email]);
+
+  const handlePurchase = async () => {
+    if (!pkg) {
+      Alert.alert('Subscriptions are launching very soon!', `We'll email you at ${email} the moment StackBid Pro is live.`);
       return;
     }
     setLoading(true);
-    await logConsent(email, CONSENT_TEXT);
-    const result = await createCheckoutSession(email);
-    setLoading(false);
-    if (result.url) {
-      await WebBrowser.openBrowserAsync(result.url);
-      return;
+    if (email) {
+      // Proof-of-consent log — same disclosure text, same table as web, timestamped before the store purchase sheet opens.
+      await logConsent(email, DISCLOSURE_TEXT);
     }
-    Alert.alert(
-      'Subscriptions are launching very soon!',
-      `We'll email you at ${email} the moment StackBid Pro is live.`
-    );
+    const result = await purchasePro(pkg);
+    setLoading(false);
+    if (result.success) {
+      onUnlocked();
+      onClose();
+    } else if (!result.userCancelled) {
+      Alert.alert('Purchase failed', result.error || "Please try again — you haven't been charged.");
+    }
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    const result = await restorePurchases();
+    setRestoring(false);
+    if (result.success) {
+      onUnlocked();
+      onClose();
+    } else {
+      Alert.alert('No active subscription found', 'If you believe this is a mistake, contact hello@stackbid.app.');
+    }
   };
 
   return (
@@ -57,30 +88,26 @@ export default function PaywallModal({ visible, email, onClose }: Props) {
 
           <View style={styles.priceBox}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceNum}>$9.99</Text>
+              <Text style={styles.priceNum}>{priceString}</Text>
               <Text style={styles.pricePeriod}>/ month</Text>
             </View>
-            <Text style={styles.disclosure}>Billed monthly. Renews automatically until canceled.</Text>
+            <Text style={styles.disclosure}>{DISCLOSURE_TEXT}</Text>
             {PERKS.map((p) => (
               <Text key={p} style={styles.perk}>✓ {p}</Text>
             ))}
           </View>
 
-          <TouchableOpacity style={styles.consentRow} onPress={() => setConsented(!consented)} activeOpacity={0.8}>
-            <View style={[styles.checkbox, consented && styles.checkboxChecked]}>
-              {consented && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={styles.consentText}>{CONSENT_TEXT}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.subBtn, !consented && styles.subBtnDisabled]}
-            onPress={subscribe}
-            disabled={loading || !consented}
-          >
+          <TouchableOpacity style={styles.subBtn} onPress={handlePurchase} disabled={loading}>
             {loading ? <ActivityIndicator color={colors.white} /> : <Text style={styles.subBtnText}>Continue and unlock my plan</Text>}
           </TouchableOpacity>
-          <Text style={styles.microcopy}>You will not be charged unless you confirm this subscription.</Text>
+
+          <TouchableOpacity onPress={handleRestore} disabled={restoring} style={styles.restoreBtn}>
+            <Text style={styles.restoreBtnText}>{restoring ? 'Checking…' : 'Restore purchase'}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.microcopy}>
+            Price and terms confirmed on the next screen before you're charged.
+          </Text>
         </View>
       </View>
     </Modal>
@@ -101,30 +128,9 @@ const styles = StyleSheet.create({
   pricePeriod: { fontSize: 13, color: colors.muted },
   disclosure: { fontSize: 11.5, color: colors.muted, textAlign: 'center', marginBottom: spacing.md },
   perk: { fontSize: 13, color: colors.ink, marginBottom: spacing.sm },
-  consentRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: colors.offwhite,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: spacing.md,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: colors.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  checkboxChecked: { backgroundColor: colors.ink, borderColor: colors.ink },
-  checkmark: { color: colors.white, fontSize: 12, fontWeight: '700' },
-  consentText: { flex: 1, fontSize: 11.5, color: colors.ink, lineHeight: 16 },
   subBtn: { backgroundColor: colors.gold, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  subBtnDisabled: { opacity: 0.5 },
   subBtnText: { color: colors.ink, fontWeight: '700', fontSize: 15 },
+  restoreBtn: { alignItems: 'center', marginTop: spacing.sm, padding: 6 },
+  restoreBtnText: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
   microcopy: { fontSize: 11, color: colors.muted, textAlign: 'center', marginTop: spacing.sm },
 });
