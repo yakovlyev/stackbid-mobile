@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Linking, Alert } from 'react-native';
 import { colors, spacing } from '../lib/theme';
 import { getStoredUser } from '../lib/storage';
-import { getEstimateHistory, createPortalSession, type EstimateHistoryItem } from '../lib/api';
+import { getEstimateHistory, type EstimateHistoryItem } from '../lib/api';
+import { getCustomerInfo, isProActive, manageSubscriptionUrl } from '../lib/purchases';
 
 export default function AccountScreen() {
   const [loading, setLoading] = useState(true);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [isPro, setIsPro] = useState(false);
@@ -20,21 +19,23 @@ export default function AccountScreen() {
     setFirstName(user.name);
     if (user.email) {
       const data = await getEstimateHistory(user.email);
-      setIsPro(data.is_pro);
+      // A person can be Pro via a web (Stripe) subscription OR an in-app (RevenueCat)
+      // purchase — show Pro if either source says so.
+      const customerInfo = await getCustomerInfo();
+      setIsPro(!!data.is_pro || isProActive(customerInfo));
       setEstimates(data.estimates || []);
     }
     setLoading(false);
   };
 
   const manageSubscription = async () => {
-    setPortalLoading(true);
-    const result = await createPortalSession(email);
-    setPortalLoading(false);
-    if (result.url) {
-      await WebBrowser.openBrowserAsync(result.url);
-      return;
+    const url = manageSubscriptionUrl();
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert("Couldn't open subscription settings", 'Open the App Store or Google Play app and go to your account subscriptions.');
     }
-    Alert.alert("Couldn't open billing", result.error || 'Please try again in a moment.');
   };
 
   useEffect(() => {
@@ -68,12 +69,8 @@ export default function AccountScreen() {
           </Text>
         </View>
         {isPro && (
-          <TouchableOpacity style={styles.manageBtn} onPress={manageSubscription} disabled={portalLoading}>
-            {portalLoading ? (
-              <ActivityIndicator color={colors.ink} size="small" />
-            ) : (
-              <Text style={styles.manageBtnText}>Manage / Cancel Subscription</Text>
-            )}
+          <TouchableOpacity style={styles.manageBtn} onPress={manageSubscription}>
+            <Text style={styles.manageBtnText}>Manage / Cancel Subscription</Text>
           </TouchableOpacity>
         )}
       </View>
