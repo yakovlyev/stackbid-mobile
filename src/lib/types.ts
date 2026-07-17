@@ -46,6 +46,7 @@ export interface AccessCheckResult {
   can_use_free?: boolean;
   is_pro?: boolean;
   access_granted?: boolean;
+  access_token?: string;
   error?: string;
 }
 
