@@ -6,10 +6,19 @@ const KEYS = {
   email: 'sb_user_email',
   name: 'sb_user_name',
   role: 'sb_user_role',
+  token: 'sb_access_token',
 };
 
 export async function getStoredEmail(): Promise<string | null> {
   return AsyncStorage.getItem(KEYS.email);
+}
+
+export async function getStoredToken(): Promise<string | null> {
+  return AsyncStorage.getItem(KEYS.token);
+}
+
+export async function saveAccessToken(token: string) {
+  if (token) await AsyncStorage.setItem(KEYS.token, token);
 }
 
 export async function saveUser(email: string, name: string, role: string) {
