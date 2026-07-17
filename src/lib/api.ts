@@ -1,4 +1,5 @@
 import type { AccessCheckResult, Estimate, PhotoResult, ProjectType, UserData } from './types';
+import { saveAccessToken, getStoredToken } from './storage';
 
 // Мобильное приложение — это ещё один клиент того же бэкенда,
 // что и веб (stackbid.app/server.js). Никакой логики цен/пейволла
@@ -129,7 +130,9 @@ If it IS a construction material, return ONLY valid JSON:
 
 export async function checkAccess(email: string): Promise<AccessCheckResult> {
   try {
-    return await postJson<AccessCheckResult>('/api/check-access', { email });
+    const result = await postJson<AccessCheckResult>('/api/check-access', { email });
+    if (result.access_token) await saveAccessToken(result.access_token);
+    return result;
   } catch (e) {
     // fail-open, как и на вебе — баг проверки не должен блокировать лида
     return { access_granted: true };
@@ -138,7 +141,7 @@ export async function checkAccess(email: string): Promise<AccessCheckResult> {
 
 export async function saveEstimate(user: UserData, estimate: Estimate, zip: string, projectType: string) {
   try {
-    await postJson('/api/save-estimate', {
+    const result = await postJson<{ access_token?: string }>('/api/save-estimate', {
       user,
       estimate: {
         title: estimate.title,
@@ -151,6 +154,7 @@ export async function saveEstimate(user: UserData, estimate: Estimate, zip: stri
         items: estimate.categories,
       },
     });
+    if (result.access_token) await saveAccessToken(result.access_token);
   } catch (e) {
     // не блокируем UX мобильного приложения из-за сбоя сохранения истории
   }
@@ -199,7 +203,9 @@ export async function getEstimateHistory(
   email: string
 ): Promise<{ is_pro: boolean; estimates: EstimateHistoryItem[] }> {
   try {
-    return await postJson('/api/get-estimates', { email });
+    const token = await getStoredToken();
+    if (!token) return { is_pro: false, estimates: [] };
+    return await postJson('/api/get-estimates', { email, token });
   } catch (e) {
     return { is_pro: false, estimates: [] };
   }
