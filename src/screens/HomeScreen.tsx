@@ -34,14 +34,11 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const [desc, setDesc] = useState('');
   const [zip, setZip] = useState('');
-  const [type, setType] = useState<ProjectType | null>(null);
+  const [type, setType] = useState<ProjectType>(PROJECT_TYPES[0]);
   const [supplier, setSupplier] = useState(SUPPLIERS[0]);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('Analyzing your project...');
   const [hasFreeLeft, setHasFreeLeft] = useState(true);
-  // Step 1 (project type) is required before Step 2/3 (details, ZIP, generate) appear —
-  // matches the step-by-step flow on the web version instead of one long form.
-  const [stepsRevealed, setStepsRevealed] = useState(false);
 
   React.useEffect(() => {
     (async () => {
@@ -58,19 +55,9 @@ export default function HomeScreen({ navigation }: Props) {
     'Building your estimate...',
   ];
 
-  const selectType = (t: ProjectType) => {
-    setType(t);
-    setStepsRevealed(true);
-  };
-
-  const skipType = () => {
-    setType('New home build');
-    setStepsRevealed(true);
-  };
-
   const onGenerate = async () => {
     const finalZip = zip.trim() || '77001';
-    const finalType = type || 'New home build';
+    const finalType = type;
     setLoading(true);
     let mi = 0;
     setLoadingMsg(messages[0]);
@@ -126,77 +113,66 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={styles.photoLinkText}>📷 Or identify a material from a photo →</Text>
         </TouchableOpacity>
 
-        <Text style={styles.stepLabel}>Step 1 · What are you building?</Text>
+        <Text style={styles.label}>Project type</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
           {PROJECT_TYPES.map((t) => (
             <TouchableOpacity
               key={t}
               style={[styles.typePill, type === t && styles.typePillActive]}
-              onPress={() => selectType(t)}
+              onPress={() => setType(t)}
             >
               <Text style={[styles.typePillText, type === t && styles.typePillTextActive]}>{t}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-        {!stepsRevealed && (
-          <TouchableOpacity onPress={skipType} style={styles.skipBtn}>
-            <Text style={styles.skipBtnText}>Not sure yet — skip this step →</Text>
-          </TouchableOpacity>
-        )}
 
-        {stepsRevealed && (
-          <View>
-            <Text style={styles.stepLabel}>Step 2 · Add the details</Text>
-            <Text style={styles.label}>Describe your project (optional)</Text>
-            <TextInput
-              style={styles.textarea}
-              placeholder="e.g. 1,200 sq ft ranch, 3 bed 2 bath, architectural shingle roof..."
-              placeholderTextColor={colors.muted}
-              value={desc}
-              onChangeText={setDesc}
-              multiline
-              numberOfLines={4}
-            />
+        <Text style={styles.label}>Describe your project (optional)</Text>
+        <TextInput
+          style={styles.textarea}
+          placeholder="e.g. 1,200 sq ft ranch, 3 bed 2 bath, architectural shingle roof..."
+          placeholderTextColor={colors.muted}
+          value={desc}
+          onChangeText={setDesc}
+          multiline
+          numberOfLines={4}
+        />
 
-            <Text style={styles.stepLabel}>Step 3 · Get local pricing</Text>
-            <Text style={styles.label}>ZIP code</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="77001"
-              placeholderTextColor={colors.muted}
-              value={zip}
-              onChangeText={setZip}
-              keyboardType="number-pad"
-              maxLength={5}
-            />
+        <Text style={styles.label}>ZIP code</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="77001"
+          placeholderTextColor={colors.muted}
+          value={zip}
+          onChangeText={setZip}
+          keyboardType="number-pad"
+          maxLength={5}
+        />
 
-            <Text style={styles.label}>Preferred supplier</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
-              {SUPPLIERS.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={[styles.typePill, supplier === s && styles.typePillActive]}
-                  onPress={() => setSupplier(s)}
-                >
-                  <Text style={[styles.typePillText, supplier === s && styles.typePillTextActive]}>{s}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <TouchableOpacity style={styles.genBtn} onPress={onGenerate} disabled={loading}>
-              {loading ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator color={colors.ink} />
-                  <Text style={styles.genBtnText}>{loadingMsg}</Text>
-                </View>
-              ) : (
-                <Text style={styles.genBtnText}>
-                  ⚡ Generate my estimate{hasFreeLeft ? ' — free' : ''}
-                </Text>
-              )}
+        <Text style={styles.label}>Preferred supplier</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
+          {SUPPLIERS.map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.typePill, supplier === s && styles.typePillActive]}
+              onPress={() => setSupplier(s)}
+            >
+              <Text style={[styles.typePillText, supplier === s && styles.typePillTextActive]}>{s}</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity style={styles.genBtn} onPress={onGenerate} disabled={loading}>
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={colors.ink} />
+              <Text style={styles.genBtnText}>{loadingMsg}</Text>
+            </View>
+          ) : (
+            <Text style={styles.genBtnText}>
+              ⚡ Generate my estimate{hasFreeLeft ? ' — free' : ''}
+            </Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -208,9 +184,8 @@ const styles = StyleSheet.create({
   logo: { fontSize: 22, fontWeight: '800', color: colors.gold },
   photoLink: { marginBottom: spacing.lg },
   photoLinkText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  stepLabel: { fontSize: 11, fontWeight: '700', color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.sm, marginTop: spacing.md },
-  label: { fontSize: 13, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm, marginTop: spacing.xs },
-  typeRow: { marginBottom: spacing.xs },
+  label: { fontSize: 13, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm, marginTop: spacing.md },
+  typeRow: { marginBottom: spacing.md },
   typePill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -222,8 +197,6 @@ const styles = StyleSheet.create({
   typePillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
   typePillText: { fontSize: 12, color: colors.ink },
   typePillTextActive: { color: colors.white },
-  skipBtn: { marginTop: 6, marginBottom: spacing.xs, padding: 4 },
-  skipBtnText: { fontSize: 12.5, color: colors.muted, textDecorationLine: 'underline' },
   textarea: {
     borderWidth: 1.5,
     borderColor: colors.border,
