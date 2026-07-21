@@ -46,7 +46,8 @@ Return ONLY valid JSON, no markdown, no preamble:
           "retail_unit": number,
           "wholesale_unit": number,
           "local_unit": number,
-          "note": "spec note"
+          "note": "spec note",
+          "alt_note": "one brief alternative material suggestion for this line item (e.g. a cheaper option with a spec tradeoff, or a higher-spec option and why) — empty string if there's no meaningful alternative worth mentioning"
         }
       ]
     }
@@ -59,6 +60,7 @@ Rules:
 - local_unit = 5-10% below wholesale
 - 4-6 relevant categories for this project type
 - Use realistic current 2026 prices reflecting US construction market conditions
+- alt_note: keep it to one short sentence, plain language, no brand names, clearly a suggestion not a guaranteed price
 - Return JSON only`;
 }
 
